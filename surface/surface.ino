@@ -40,23 +40,23 @@ Encoder myEnc(18, 19);
 
 //-------------------------------------------------------------Global Variables
   //Screen
-  int main_pos = 1;
-  int sub_pos = 0;
-  int main_menu = 1;
-  int sub_menu = 0;
-  int last_main_pos = 1;
-  int last_seconds = 0;
-  int last_minutes = 0;
-  int last_time =  0;
-  int loop_time = 0;
-  int width;
-  int height;
+  uint8_t main_pos = 1;
+  uint8_t sub_pos = 0;
+  uint8_t main_menu = 1;
+  uint8_t sub_menu = 0;
+  uint8_t last_main_pos = 1;
+  uint8_t last_seconds = 0;
+  uint8_t last_minutes = 0;
+  uint8_t last_time =  0;
+  uint8_t loop_time = 0;
+  uint16_t width;
+  uint16_t height;
 
   //Controller (arrays used for more efficient printing)
   const char *controller_str[] = {"Lx", "Ly", "Rx", "Ry", "LT", "RT", "LB", "RB"};
   const int controller_enum[] = {LeftHatX, LeftHatY, RightHatX, RightHatY, L2, R2, L1, R1};
-  int controller_val[8] = {0, 0, 0, 0, 0, 0, 0, 0};
-  int controller_pval[8] = {-199, -199, -199, -199, -199, -199, -199, -199};
+  int16_t controller_val[8] = {0, 0, 0, 0, 0, 0, 0, 0};
+  int16_t controller_pval[8] = {-199, -199, -199, -199, -199, -199, -199, -199};
   int controller_serial[8] = {0, 0, 0, 0, 0, 0, 0, 0};
   char serial_buffer[24] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
@@ -108,7 +108,7 @@ void setup() {
   print_header();
 
   //EEPROM Read
-  for(int i = 0; i < 6; i++) {
+  for(uint8_t i = 0; i < 6; i++) {
     //gain_val[i] = float(EEPROM.read(i)) / 100;  //Disable until testing time
     ;
   }
@@ -147,7 +147,7 @@ void loop(void) {
     controller_val[5] = map(controller_val[5], 0, 255, 0, 100);
 
     //I2C
-    for(int i = 0; i < 8; i++) {
+    for(uint8_t i = 0; i < 8; i++) {
       controller_serial[i] = controller_val[i] + 200;  //No -ve num or < 10 down I2C
     }
 
@@ -264,11 +264,11 @@ void loop(void) {
   }
 
   if(main_pos == 3) {
-    int lspace = 43;
+    uint8_t lspace = 43;
     tft.setTextColor(LCD_RED);
     tft.println("3: Gain Settings");
 
-    for(int i = 0; i < 7; i++) {
+    for(uint8_t i = 0; i < 7; i++) {
 
       if(sub_menu == 1 && i == sub_pos && i != 6) {
         tft.setTextColor(LCD_BLACK);
@@ -299,7 +299,7 @@ void loop(void) {
             for(int i = 0; i < 6; i++) {
               EEPROM.write(i, int(gain_val[i] * 100));
             }
-            for(int i = 0; i < 2; i++) {
+            for(uint8_t i = 0; i < 2; i++) {
               tft.setTextColor(LCD_BLACK);
               tft.setCursor(280, 65 + 25 + (6 * 25));
               tft.print("SAVE TO EEPROM");
@@ -334,7 +334,7 @@ void loop(void) {
   tft.setTextColor(LCD_BLACK);
   //Controller
   if(last_main_pos == 2) {
-    for(int i = 0; i < 8; i++) {
+    for(uint8_t i = 0; i < 8; i++) {
       tft.setCursor(280, 65 + (i * 25));
       tft.print(controller_str[i]);
       tft.print(" = ");
@@ -345,7 +345,7 @@ void loop(void) {
 
   //Gain Settings
   if(last_main_pos == 3) {
-    for(int i = 0; i < 6; i++) {
+    for(uint8_t i = 0; i < 6; i++) {
       tft.setCursor(280, 65 + (i * 25));
       tft.print(gain_str[i]);
       tft.print(" = ");
@@ -360,7 +360,7 @@ void loop(void) {
 
 
 //---------------------------------------------------------------Controller pcontroller_serial
-  for(int i = 0; i < 8; i++) {
+  for(uint8_t i = 0; i < 8; i++) {
     if(main_pos == 2){
       controller_pval[i] = controller_val[i];
     }
@@ -374,8 +374,8 @@ void loop(void) {
   //Runtime calculation
   long time_ms = millis();
   int time = int(time_ms / 1000);
-  int seconds;
-  int minutes;
+  uint8_t seconds;
+  uint8_t minutes;
 
   if(time < 60) {
      seconds = time;
@@ -387,13 +387,8 @@ void loop(void) {
   }
 
   //Status bar
-  int bar_x = 384;
-  int bar_y = 4;
-  int h_len = 92;
-  int v_len = 20;
-
   if(minutes < 15) {
-    tft.drawFastVLine(bar_x + 1 + (time / 10), bar_y + 1, 19, LCD_RED);
+    tft.drawFastVLine(385 + (time / 10), 5, 18, LCD_RED);
   }
 
   //Timer
@@ -425,8 +420,8 @@ void loop(void) {
 
 
 //---------------------------------------------------------------Serial Comms
-  for(int i = 0; i < 8; i++) {
-  int buffer_pos = i * 3;
+  for(uint8_t i = 0; i < 8; i++) {
+  uint8_t buffer_pos = i * 3;
   if(controller_serial[i] < 10) {
     serial_buffer[buffer_pos] = serial_buffer[buffer_pos + 1] = '0';
     serial_buffer[buffer_pos + 2] = (controller_serial[i]) + '0';
