@@ -57,7 +57,7 @@ Encoder myEnc(18, 19);
   const int controller_enum[] = {LeftHatX, LeftHatY, RightHatX, RightHatY, L2, R2, L1, R1};
   int16_t controller_val[8] = {0, 0, 0, 0, 0, 0, 0, 0};
   int16_t controller_pval[8] = {-199, -199, -199, -199, -199, -199, -199, -199};
-  int controller_serial[8] = {0, 0, 0, 0, 0, 0, 0, 0};
+  uint8_t controller_serial[8] = {0, 0, 0, 0, 0, 0, 0, 0};
   char serial_buffer[24] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
   //Gain
@@ -198,14 +198,14 @@ void loop(void) {
   }
   else {
     //Catch for Xbox360Connected being false
-    for(int i = 0; i < 8; i++) {
+    for(uint8_t i = 0; i < 8; i++) {
       controller_val[i] = 0;
     }
   }
 
 
 
-//-------------------------------------------------------------Serial Port
+//-------------------------------------------------------------Debug
   tft.setCursor(15, 40);
   if(main_pos == 1) {
     tft.setTextColor(LCD_RED);
@@ -213,7 +213,7 @@ void loop(void) {
   else {
     tft.setTextColor(LCD_WHITE);
   }
-  tft.println("1: Serial Port");
+  tft.println("1: Debug");
 
 
 

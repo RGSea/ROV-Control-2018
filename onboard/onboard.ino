@@ -19,6 +19,9 @@ Servo escBR_H;
 Servo escBL_V;
 Servo escBR_V;
 
+//-------------------------------------------------------------Macros
+#define minpuls 1000
+#define maxpuls 2000
 
 //-------------------------------------------------------------Global Variables
 	//Servo
