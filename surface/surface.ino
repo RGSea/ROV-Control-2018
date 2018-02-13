@@ -68,6 +68,9 @@ Encoder myEnc(18, 19);
   long encoder_pos = 0;
   long p_encoder_pos = -999;
 
+  //Menus
+  const char *menu_str[] = {"1: Debug", "2: Controller", "3: Gain Settings"};
+
 
 
 
@@ -106,6 +109,17 @@ void setup() {
 
   //Initial/permanent TFT screen prints 
   print_header();
+
+  for(uint8_t i = 1; i < 4; i++) {
+    if(i == main_pos) {
+      tft.setTextColor(LCD_RED);
+    }
+    else {
+      tft.setTextColor(LCD_WHITE);
+    }
+    tft.setCursor(15, 15 + (i * 25));
+    tft.println(menu_str[i - 1]);
+  }
 
   //EEPROM Read
   for(uint8_t i = 0; i < 6; i++) {
@@ -161,13 +175,13 @@ void loop(void) {
         last_main_pos = main_pos;
         main_pos += 1;
       }
-      if(main_pos > 5) {
+      if(main_pos > 3) {
         //last_main_pos = main_pos;
         main_pos = 1;
       }
       if(main_pos < 1) {
         //last_main_pos = main_pos;
-        main_pos = 5;
+        main_pos = 3;
       }
     }
 
@@ -204,16 +218,26 @@ void loop(void) {
   }
 
 
+//-------------------------------------------------------------Menu Selection
+if(main_pos != last_main_pos) {
+  for(uint8_t i = 1; i < 4; i++) {
+    if(i == main_pos) {
+      tft.setTextColor(LCD_RED);
+    }
+    else {
+      tft.setTextColor(LCD_WHITE);
+    }
+    tft.setCursor(15, 15 + (i * 25));
+    tft.println(menu_str[i - 1]);
+  }
+
+}
+
+
+
 
 //-------------------------------------------------------------Debug
-  tft.setCursor(15, 40);
-  if(main_pos == 1) {
-    tft.setTextColor(LCD_RED);
-  }
-  else {
-    tft.setTextColor(LCD_WHITE);
-  }
-  tft.println("1: Debug");
+
 
 
 
@@ -221,9 +245,7 @@ void loop(void) {
 //-----------------------------------------------------------Controller Readings
   tft.setCursor(15, 65);
   if(main_pos == 2) {
-    
-    tft.setTextColor(LCD_RED);
-    tft.println("2: Controller");
+
     tft.setTextColor(LCD_WHITE);
 
 
@@ -243,14 +265,10 @@ void loop(void) {
     }
 
   }
-  else {
-    tft.setTextColor(LCD_WHITE);
-    tft.println("2: Controller");
-  }
+
 
 
 //-----------------------------------------------------------Gain Settings
-  tft.setCursor(15, 90);
 
   //Encoder readings
   int change;
@@ -265,8 +283,6 @@ void loop(void) {
 
   if(main_pos == 3) {
     uint8_t lspace = 43;
-    tft.setTextColor(LCD_RED);
-    tft.println("3: Gain Settings");
 
     for(uint8_t i = 0; i < 7; i++) {
 
@@ -322,16 +338,13 @@ void loop(void) {
     }
 
   }
-  else {
-    tft.setTextColor(LCD_WHITE);
-    tft.println("3: Gain Settings");
-  }
 
 
 
 
 //-------------------------------------------------------------Cleanup Menu
   tft.setTextColor(LCD_BLACK);
+  
   //Controller
   if(last_main_pos == 2) {
     for(uint8_t i = 0; i < 8; i++) {
