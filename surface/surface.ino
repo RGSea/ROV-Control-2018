@@ -233,9 +233,6 @@ if(main_pos != last_main_pos) {
 
 }
 
-
-
-
 //-------------------------------------------------------------Debug
 
 
@@ -243,11 +240,9 @@ if(main_pos != last_main_pos) {
 
 
 //-----------------------------------------------------------Controller Readings
-  tft.setCursor(15, 65);
   if(main_pos == 2) {
 
     tft.setTextColor(LCD_WHITE);
-
 
     for(int i = 0; i < 8; i++) {
       tft.setCursor(280, 65 + (i * 25));
@@ -265,7 +260,6 @@ if(main_pos != last_main_pos) {
     }
 
   }
-
 
 
 //-----------------------------------------------------------Gain Settings
@@ -503,8 +497,5 @@ void print_header() {
   tft.drawRect(384, 4, 92,20, LCD_WHITE);
 }
 
-
-
-//Only need to print over main menu when selection changes
 //Menu cleanup on change looks bad because of order
 //Apply gain to controller readings
