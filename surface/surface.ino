@@ -3,21 +3,9 @@
 //Tim Brewis
 
 
-//TFT Screen Setup
-#include <Adafruit_GFX.h>                                              //Core graphics library
-#include <Adafruit_TFTLCD.h>                                           //Hardware-specific library
-#define LCD_CS    A3                                                   //Chip Select goes to Analog 3
-#define LCD_CD    A2                                                   //Command/Data goes to Analog 2
-#define LCD_WR    A1                                                   //LCD Write goes to Analog 1
-#define LCD_RD    A0                                                   //LCD Read goes to Analog 0
-#define LCD_RESET A4                                                   //Can alternately just connect to Arduino's reset pin
-#define LCD_BLACK 0xFFFF                                               //Hex colour macros
-#define LCD_WHITE 0x0000
-#define LCD_RED   0x07FF
-Adafruit_TFTLCD tft(LCD_CS, LCD_CD, LCD_WR, LCD_RD, LCD_RESET);
 
 
-//USB Library Setup
+//USB Library
 #include <XBOXUSB.h>
 #ifdef dobogusinclude
 #include <spi4teensy3.h>
@@ -26,70 +14,116 @@ Adafruit_TFTLCD tft(LCD_CS, LCD_CD, LCD_WR, LCD_RD, LCD_RESET);
 USB Usb;
 XBOXUSB Xbox(&Usb);
 
+//TFT Screen Library
+#include <Adafruit_GFX.h>                                              //Core graphics library
+#include <Adafruit_TFTLCD.h>                                           //Hardware-specific library
+#define LCD_CS    A3                                                   //Chip Select goes to Analog 3
+#define LCD_CD    A2                                                   //Command/Data goes to Analog 2
+#define LCD_WR    A1                                                   //LCD Write goes to Analog 1
+#define LCD_RD    A0                                                   //LCD Read goes to Analog 0
+#define LCD_RESET A4                                                   //Can alternately just connect to Arduino's reset pin
+Adafruit_TFTLCD tft(LCD_CS, LCD_CD, LCD_WR, LCD_RD, LCD_RESET);
 
 //Rotary Encoder Setup
-#include <Encoder.h>		                                                //Interrupt driven encoder library
+#include <Encoder.h>                                                    //Interrupt driven encoder library
 Encoder myEnc(18, 19);
-
 
 //EEPROM
 #include <EEPROM.h>
 
-//-------------------------------------------------------------Macros
+
+
+
+//Macros
+#define BAUDRATE 115200 //DO NOT CHANGE
 #define DEADZONE 6500
-
-//-------------------------------------------------------------Global Variables
-  //Screen
-  uint8_t main_pos = 1;
-  uint8_t sub_pos = 0;
-  uint8_t main_menu = 1;
-  uint8_t sub_menu = 0;
-  uint8_t last_main_pos = 1;
-  uint8_t last_seconds = 0;
-  uint8_t last_minutes = 0;
-  uint8_t last_time =  0;
-  uint8_t loop_time = 0;
-  uint16_t width;
-  uint16_t height;
-
-  //Controller (arrays used for more efficient printing)
-  const char *controller_str[] = {"Lx", "Ly", "Rx", "Ry", "LT", "RT", "LB", "RB"};
-  const int controller_enum[] = {LeftHatX, LeftHatY, RightHatX, RightHatY, L2, R2, L1, R1};
-  int16_t controller_val[8] = {0, 0, 0, 0, 0, 0, 0, 0};
-  int16_t controller_pval[8] = {-199, -199, -199, -199, -199, -199, -199, -199};
-  uint8_t controller_serial[8] = {0, 0, 0, 0, 0, 0, 0, 0};
-  char serial_buffer[24] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-
-  //Gain
-  const char *gain_str[] = {"F/B  ", "L/R  ", "Vert ", "Yaw  ", "Roll ", "Pitch"};
-  float gain_val[6] = {1.00, 1.00, 1.00, 1.00, 1.00, 1.00};
-
-  //Rotary Encoder
-  long encoder_pos = 0;
-  long p_encoder_pos = -999;
-
-  //Menus
-  const char *menu_str[] = {"1: Debug", "2: Controller", "3: Gain Settings"};
+#define AXISMAX 32767
+#define LCD_BLACK 0xFFFF
+#define LCD_WHITE 0x0000
+#define LCD_RED   0x07FF
 
 
+//Globals
+const int controller_enum[] = {LeftHatX, LeftHatY, RightHatX, RightHatY, L2, R2, L1, R1};
+int16_t controller_val[8] = {0, 0, 0, 0, 0, 0, 0, 0};
+int16_t controller_pval[8] = {-199, -199, -199, -199, -199, -199, -199, -199};
+float gain_val[6] = {1.00, 1.00, 1.00, 1.00, 1.00, 1.00};
+
+uint8_t main_pos = 1;
+uint8_t sub_pos = 0;
+uint8_t main_menu = 1;
+uint8_t sub_menu = 0;
+uint8_t last_main_pos = 1;
+uint8_t last_seconds = 0;
+uint8_t last_minutes = 0;
+uint8_t last_time =  0;
+uint8_t loop_time = 0;
+uint16_t width;
+uint16_t height;
+const char *gain_str[] = {"F/B  ", "L/R  ", "Vert ", "Yaw  ", "Roll ", "Pitch"};
+const char *menu_str[] = {"1: Debug", "2: Controller", "3: Gain Settings"};
+const char *controller_str[] = {"Lx", "Ly", "Rx", "Ry", "LT", "RT", "LB", "RB"};
+
+uint16_t tick;
+uint16_t _micros;
+uint16_t pmicros;
+
+long encoder_pos = 0;
+long p_encoder_pos = -999;
 
 
 
-//-------------------------------------------------------------Setup
+
+//---------------------------------------------------------------Functions
+void deadzone_check(int16_t *axis) {
+  if(*axis < DEADZONE && *axis > -DEADZONE) {*axis = 0;}
+}
+
+void map_axis(int16_t *axis) {
+  if(*axis > 0) {*axis = map(*axis, DEADZONE, AXISMAX, 0, 100);}
+  if(*axis < 0) {*axis = map(*axis, -AXISMAX, -DEADZONE, -100, 0);}
+}
+
+String serial_make_str(uint16_t val) {
+  String str;
+  String zero = "0";
+  if(val < 10 and val >= 0) {str = zero + zero + val;}
+  if(val < 100 and val >= 10) {str = zero + val;}
+  if(val < 1000 and val >= 100) {str = val;}
+  if(val < 0 or val >= 1000) {str = "000";}
+  return str;
+}
+
+void serial_send(uint16_t val1, uint16_t val2, uint16_t val3, uint16_t val4, uint16_t val5, uint16_t val6, uint16_t val7, uint16_t val8) {
+  String buffer;
+  char ser_out[25] = "000000000000000000000000";
+  buffer = serial_make_str(val1) + serial_make_str(val2) + serial_make_str(val3) + serial_make_str(val4) + serial_make_str(val5) + serial_make_str(val6) + serial_make_str(val7) + serial_make_str(val8);
+  buffer.toCharArray(ser_out, 25);
+  Serial2.write(ser_out, 24);
+  //Serial2.flush();
+  //Serial.print(ser_out);
+}
+
+
+
+
+//---------------------------------------------------------------Setup
 void setup() {
 
-  Serial.begin(115200);
-  Serial.setTimeout(500);
+	//Serial Setup
+	Serial.begin(BAUDRATE);
+	Serial2.begin(BAUDRATE);
+	Serial.setTimeout(500);
 
-  //Controller Setup
-  #if !defined(__MIPSEL__)
-  while (!Serial); //Wait for serial port to connect
-  #endif
-  if (Usb.Init() == -1) {
-    Serial.print(F("\r\nXBOX USB did not start"));
-    while(1); //Stop
-  }
-  Serial.print(F("\r\nXBOX USB Library Started"));
+ 	//Controller Setup
+ 	#if !defined(__MIPSEL__)
+  	while (!Serial); 													//Wait for serial port to connect
+  	#endif
+  	if (Usb.Init() == -1) {
+    	Serial.print(F("\r\nXBOX USB did not start"));
+    	while(1); //Stop
+  	}
+  	Serial.print(F("\r\nXBOX USB Library Started"));
 
 
   //TFT Screen Setup
@@ -108,7 +142,12 @@ void setup() {
   height = tft.height();
 
   //Initial/permanent TFT screen prints 
-  print_header();
+  tft.setCursor(10, 8);
+  tft.setTextColor(LCD_WHITE);
+  tft.println("ROV Control");
+  tft.drawFastHLine(0, 28, tft.width(), LCD_WHITE);
+  tft.drawFastVLine(tft.width()/2, 0, tft.height(), LCD_WHITE);
+  tft.drawRect(384, 4, 92,20, LCD_WHITE);
 
   for(uint8_t i = 1; i < 4; i++) {
     if(i == main_pos) {
@@ -121,93 +160,79 @@ void setup() {
     tft.println(menu_str[i - 1]);
   }
 
-  //EEPROM Read
-  for(uint8_t i = 0; i < 6; i++) {
-    //gain_val[i] = float(EEPROM.read(i)) / 100;  //Disable until testing time
-    ;
-  }
-
-  //Serial Comms
-  Serial2.begin(115200);
-
-}
-
-
-//-------------------------------------------------------------Main Loop
-void loop(void) {
-
-//-------------------------------------------------------------Local Variables
-  //there are none?
 
 
 
-//-------------------------------------------------------------Controller
+}//End setup
 
-  Usb.Task(); //Poll controller
-  if(Xbox.Xbox360Connected) {
 
-    //Fetch values
-    for(uint8_t i = 0; i < 4; i++) {
-      controller_val[i] = Xbox.getAnalogHat(controller_enum[i]);
-      controller_val[i + 4] = Xbox.getButtonPress(controller_enum[i + 4]);
-      deadZoneCheck(&controller_val[i]);
-    }
 
-    //Axis mapping
-    for(uint8_t i = 0; i < 4; i++) {
-      mapAxis(&controller_val[i]);
-    }
-    controller_val[4] = map(controller_val[4], 0, 255, 0, 100);
-    controller_val[5] = map(controller_val[5], 0, 255, 0, 100);
 
-    //I2C
-    for(uint8_t i = 0; i < 8; i++) {
-      controller_serial[i] = controller_val[i] + 200;  //No -ve num or < 10 down I2C
-    }
+//---------------------------------------------------------------Loop
+void loop() {
+	pmicros = micros();
+	for(uint8_t i = 0; i < 8; i++) {controller_val[i] = 0;}
+	
+//---------------------------------------------------------------Controller
+	Usb.Task();
+	if(Xbox.Xbox360Connected) {
 
-    //Menu Navigation 
-    if(main_menu) {
-      if(Xbox.getButtonClick(UP)) {
-        last_main_pos = main_pos;
-        main_pos -= 1;
+    	//Fetch values
+	    for(uint8_t i = 0; i < 4; i++) {
+	    	controller_val[i] = Xbox.getAnalogHat(controller_enum[i]);
+	      	controller_val[i + 4] = Xbox.getButtonPress(controller_enum[i + 4]);
+	      	deadzone_check(&controller_val[i]);
+	    }
+
+	    //Axis mapping
+	    for(uint8_t i = 0; i < 4; i++) {map_axis(&controller_val[i]);}
+	    if(controller_val[4] != 0) {controller_val[4] = map(controller_val[4], 0, 255, 0, 100);}
+	    if(controller_val[5] != 0) {controller_val[5] = map(controller_val[5], 0, 255, 0, 100);}
+
+
+  	   //Menu Navigation 
+      if(main_menu) {
+        if(Xbox.getButtonClick(UP)) {
+          last_main_pos = main_pos;
+          main_pos -= 1;
+        }
+        if(Xbox.getButtonClick(DOWN)) {
+          last_main_pos = main_pos;
+          main_pos += 1;
+        }
+        if(main_pos > 3) {
+          //last_main_pos = main_pos;
+          main_pos = 1;
+        }
+        if(main_pos < 1) {
+          //last_main_pos = main_pos;
+          main_pos = 3;
+        }
       }
-      if(Xbox.getButtonClick(DOWN)) {
-        last_main_pos = main_pos;
-        main_pos += 1;
-      }
-      if(main_pos > 3) {
-        //last_main_pos = main_pos;
-        main_pos = 1;
-      }
-      if(main_pos < 1) {
-        //last_main_pos = main_pos;
-        main_pos = 3;
-      }
-    }
 
-    if(sub_menu) {
-      if(Xbox.getButtonClick(UP)) {
-        sub_pos -= 1;
+      if(sub_menu) {
+        if(Xbox.getButtonClick(UP)) {
+          sub_pos -= 1;
+        }
+        if(Xbox.getButtonClick(DOWN)) {
+          sub_pos += 1;
+        }
+        if(sub_pos > 6) {
+          sub_pos = 0;
+        }
+        if(sub_pos < 0) {
+          sub_pos = 6;
+        }
       }
-      if(Xbox.getButtonClick(DOWN)) {
-        sub_pos += 1;
-      }
-      if(sub_pos > 6) {
-        sub_pos = 0;
-      }
-      if(sub_pos < 0) {
-        sub_pos = 6;
-      }
-    }
 
-    if(Xbox.getButtonClick(A)) {
-      main_menu = 0;
-      sub_menu = 1;
-    }
-    if(Xbox.getButtonClick(B)) {
-      main_menu = 1;
-      sub_menu = 0;
-    }
+      if(Xbox.getButtonClick(A)) {
+        main_menu = 0;
+        sub_menu = 1;
+      }
+      if(Xbox.getButtonClick(B)) {
+        main_menu = 1;
+        sub_menu = 0;
+      }
 
   }
   else {
@@ -238,7 +263,7 @@ if(main_pos != last_main_pos) {
 
 
 
-
+if(main_pos != last_main_pos) {
 //-----------------------------------------------------------Controller Readings
   if(main_pos == 2) {
 
@@ -260,7 +285,7 @@ if(main_pos != last_main_pos) {
     }
 
   }
-
+  
 
 //-----------------------------------------------------------Gain Settings
 
@@ -334,8 +359,6 @@ if(main_pos != last_main_pos) {
   }
 
 
-
-
 //-------------------------------------------------------------Cleanup Menu
   tft.setTextColor(LCD_BLACK);
   
@@ -366,7 +389,7 @@ if(main_pos != last_main_pos) {
   }
 
 
-//---------------------------------------------------------------Controller pcontroller_serial
+//---------------------------------------------------------------Controller
   for(uint8_t i = 0; i < 8; i++) {
     if(main_pos == 2){
       controller_pval[i] = controller_val[i];
@@ -375,7 +398,7 @@ if(main_pos != last_main_pos) {
       controller_pval[i] = -199;
     }
   }
-
+}//End change check
 
 //---------------------------------------------------------------Runtime
   //Runtime calculation
@@ -425,77 +448,30 @@ if(main_pos != last_main_pos) {
   }
 
 
+//---------------------------------------------------------------Serial To Onboard
 
-//---------------------------------------------------------------Serial Comms
-  for(uint8_t i = 0; i < 8; i++) {
-  uint8_t buffer_pos = i * 3;
-  if(controller_serial[i] < 10) {
-    serial_buffer[buffer_pos] = serial_buffer[buffer_pos + 1] = '0';
-    serial_buffer[buffer_pos + 2] = (controller_serial[i]) + '0';
-  }
-  if(controller_serial[i] < 100 && controller_serial[i] >= 10) {
-    serial_buffer[buffer_pos] = '0';
-    serial_buffer[buffer_pos + 1] = floor(controller_serial[i] / 10) + '0';
-    serial_buffer[buffer_pos + 2] = (controller_serial[i] - (10 * floor(controller_serial[i] / 10))) + '0';
-  }
-  if(controller_serial[i] < 1000 && controller_serial[i] >= 10) {
-    serial_buffer[buffer_pos] = floor(controller_serial[i] / 100) + '0';
-    serial_buffer[buffer_pos + 1] = floor((controller_serial[i] - (100 * floor(controller_serial[i]/ 100))) / 10) + '0';
-    serial_buffer[buffer_pos + 2] = (controller_serial[i] - (100 * floor(controller_serial[i] / 100)) - (10 * floor((controller_serial[i] - (100 * floor(controller_serial[i]/ 100))) / 10))) + '0';
-  }
-  else {
-    serial_buffer[buffer_pos] = serial_buffer[buffer_pos + 1] = serial_buffer[buffer_pos + 2] = '0';
-  }
-  
+  	uint16_t val1 = ceil(controller_val[0] * gain_val[0]) + 100;
+  	uint16_t val2 = ceil(controller_val[1] * gain_val[1]) + 100;
+  	uint16_t val3 = ceil(controller_val[2] * gain_val[2]) + 100;
+  	uint16_t val4 = ceil(controller_val[3] * gain_val[3]) + 100;
+  	uint16_t val5 = ceil(controller_val[4] * gain_val[4]) + 100;
+  	uint16_t val6 = ceil(controller_val[5] * gain_val[5]) + 100;
+  	uint16_t val7 = ceil(controller_val[6]) + 100;
+  	uint16_t val8 = ceil(controller_val[7]) + 100;
+  	
+  	Usb.Task();
+
+  	serial_send(val1, val2, val3, val4, val5, val6, val7, val8);	
+    delay(4);	
+	
+
+	/*_micros = micros();
+	tick = _micros - pmicros;
+	Serial.print("	");
+	Serial.println(tick);
+	
+		//Serial.println(tick);*/
+
+
+
 }
-
-
-  delay(1);
-
-  Serial.print("Outgoing Buffer: ");
-  for(int i = 0; i < 24; i++) {
-    Serial.print(serial_buffer[i]);
-  }
-  Serial.println();
-  Serial2.write(serial_buffer, 24);
-
-
-
-
-
-
-
-//END MAIN LOOP
-}
-
-
-
-
-//-----------------------------------------------------------Functions
-
-void deadZoneCheck(int16_t *axis) {
-  if(*axis < DEADZONE && *axis > -DEADZONE) {
-    *axis = 0;
-  }
-}
-
-void mapAxis(int16_t *axis) {
-  if(*axis > 0) {
-    *axis = map(*axis, DEADZONE, 32767, 0, 100);
-  }
-  if(*axis < 0) {
-    *axis = map(*axis, -32767, -DEADZONE, -100, 0);
-  }
-}
-
-void print_header() {
-  tft.setCursor(10, 8);
-  tft.setTextColor(LCD_WHITE);
-  tft.println("ROV Control");
-  tft.drawFastHLine(0, 28, tft.width(), LCD_WHITE);
-  tft.drawFastVLine(tft.width()/2, 0, tft.height(), LCD_WHITE);
-  tft.drawRect(384, 4, 92,20, LCD_WHITE);
-}
-
-//Menu cleanup on change looks bad because of order
-//Apply gain to controller readings

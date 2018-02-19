@@ -4,10 +4,6 @@
 
 
 
-#include <LiquidCrystal.h>
-LiquidCrystal LCD(12,11,5,4,3,2);
-
-
 //Servo
 #include <Servo.h>
 Servo escFL_H;    //FL-H means front, left, horizontal
@@ -20,28 +16,22 @@ Servo escBL_V;
 Servo escBR_V;
 
 //-------------------------------------------------------------Macros
-#define minpuls 1000
-#define maxpuls 2000
+#define MINPULS 1000
+#define MAXPULS 2000
+#define pinFL_H 2
+#define pinFR_H 3
+#define pinBL_H 4
+#define pinBR_H 5
+#define pinFL_V 6
+#define pinFR_V 7
+#define pinBL_V 8
+#define pinBR_V 9
 
 //-------------------------------------------------------------Global Variables
-	//Servo
-	int pinFL_H = 2;
-	int pinFR_H = 3;
-	int pinBL_H = 4;
-	int pinBR_H = 5;
-	int pinFL_V = 6;
-	int pinFR_V = 7;
-	int pinBL_V = 8;
-	int pinBR_V = 9;  
+
 	//ESC pulselengths
-  int minpuls = 1000;      //these values should be tuned such that they are at the absolute limits of effective throttle
-  int maxpuls = 2000;      //Sidenote: maxes should be at a level that does not exceed maximum permitted current draw. (2.5A/motor ABSOLUTE MAX)
-  int neutral = (maxpuls + minpuls) / 2; //once tuned, neutral may not be perfectly in the middle. Hence the separate variable
+  uint16_t neutral = (MAXPULS + MINPULS) / 2; 
 
-
-	//Serial
-	char serial_in[24];
-	int serial_vals[8];
 
 	//Motor speed calculations
   float straferate =  0.25;
@@ -57,7 +47,6 @@ Servo escBR_V;
 void setup() {
 
 	Serial.begin(115200);
-  LCD.begin(16,2);
 
 	escFL_H.attach(pinFL_H, minpuls, maxpuls);
   escFR_H.attach(pinFR_H, minpuls, maxpuls);
@@ -86,9 +75,8 @@ void loop() {
 
 
 //-------------------------------------------------------------Serial Comms
-  for(int i = 0; i < 8; i++) {
-    serial_vals[i] = (serial_in[3*i] - '0') * 100 + (serial_in[3*i + 1] - '0') * 10 + (serial_in[3*i + 2] - '0');
-  }
+
+
 
 //-------------------------------------------------------------Motor Calculations
   //Convert variables back to their actual value
@@ -214,14 +202,7 @@ void loop() {
 //-------------------------------------------------------------Loop Cleanup
   delay(1);
 
-  LCD.setCursor(0,0);
-  for(int i = 0; i < 12; i++) {
-    LCD.setCursor(0,i);
-    LCD.write(char(serial_in[i]));
-  }
-  delay(100);
-  LCD.clear();
-  
+
 //END MAIN LOOP
 }
 
