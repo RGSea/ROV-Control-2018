@@ -48,14 +48,14 @@ void setup() {
 
 	Serial.begin(115200);
 
-	escFL_H.attach(pinFL_H, minpuls, maxpuls);
-  escFR_H.attach(pinFR_H, minpuls, maxpuls);
-  escBL_H.attach(pinBL_H, minpuls, maxpuls);
-  escBR_H.attach(pinBR_H, minpuls, maxpuls);
-  escFL_V.attach(pinFL_V, minpuls, maxpuls);
-  escFR_V.attach(pinFR_V, minpuls, maxpuls);
-  escBL_V.attach(pinBL_V, minpuls, maxpuls);
-  escBR_V.attach(pinBR_V, minpuls, maxpuls);
+	escFL_H.attach(pinFL_H, MINPULS, MAXPULS);
+  escFR_H.attach(pinFR_H, MINPULS, MAXPULS);
+  escBL_H.attach(pinBL_H, MINPULS, MAXPULS);
+  escBR_H.attach(pinBR_H, MINPULS, MAXPULS);
+  escFL_V.attach(pinFL_V, MINPULS, MAXPULS);
+  escFR_V.attach(pinFR_V, MINPULS, MAXPULS);
+  escBL_V.attach(pinBL_V, MINPULS, MAXPULS);
+  escBR_V.attach(pinBR_V, MINPULS, MAXPULS);
 
   escFL_H.write(neutral);
   escFR_H.write(neutral);
@@ -79,20 +79,16 @@ void loop() {
 
 
 //-------------------------------------------------------------Motor Calculations
-  //Convert variables back to their actual value
-  for(int i = 0; i < 8; i++) {
-  	serial_vals[i] -= 200;
-  }
-  serial_vals[5] = serial_vals[5] * -1;
 
-  int Lx = serial_vals[0];
-  int Ly = serial_vals[1];
-  int Rx = serial_vals[2];
-  int Ry = serial_vals[3];
-  int LT = serial_vals[4];
-  int RT = serial_vals[5];
-  int LB = serial_vals[6];
-  int RB = serial_vals[7];
+
+  int Lx = 0;
+  int Ly = 0;
+  int Rx = 0;
+  int Ry = 0;
+  int LT = 0;
+  int RT = 0;
+  int LB = 0;
+  int RB = 0;
 
   //Get current stick values, convert to float between -1 and 1
   float fwdbwd = (float)Ly / 100;;

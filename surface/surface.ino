@@ -99,9 +99,8 @@ void serial_send(uint16_t val1, uint16_t val2, uint16_t val3, uint16_t val4, uin
   char ser_out[25] = "000000000000000000000000";
   buffer = serial_make_str(val1) + serial_make_str(val2) + serial_make_str(val3) + serial_make_str(val4) + serial_make_str(val5) + serial_make_str(val6) + serial_make_str(val7) + serial_make_str(val8);
   buffer.toCharArray(ser_out, 25);
-  Serial2.write(ser_out, 24);
+  Serial1.write(ser_out, 24);
   //Serial2.flush();
-  //Serial.print(ser_out);
 }
 
 
@@ -112,7 +111,7 @@ void setup() {
 
 	//Serial Setup
 	Serial.begin(BAUDRATE);
-	Serial2.begin(BAUDRATE);
+	Serial1.begin(BAUDRATE);
 	Serial.setTimeout(500);
 
  	//Controller Setup
@@ -462,7 +461,7 @@ if(main_pos != last_main_pos) {
   	Usb.Task();
 
   	serial_send(val1, val2, val3, val4, val5, val6, val7, val8);	
-    delay(4);	
+    delay(10);	
 	
 
 	/*_micros = micros();
