@@ -7,29 +7,27 @@ Servo escBR_H;		Servo escBR_V;
 
 //Macros
 #define BAUDRATE      	115200
-#define SPEED_LIMIT   	1.0//factor to limit motor speed
 #define MINPULS       	1064
 #define MAXPULS       	1864
-#define pinFL_H			6 			//connected to ESC 8 
-#define pinFR_H			7 			//connected to ESC 7
-#define pinBL_H			8			//connected to ESC 6
-#define pinBR_H			9			//connected to ESC 5
-#define pinFL_V			10          //connected to ESC 4
-#define pinFR_V			11          //connected to ESC 3
-#define pinBL_V			12 			//connected to ESC 2
-#define pinBR_V			13 			//connected to ESC 1
-
-#define NEUTRAL_FL_H    1464 //117
+#define NEUTRAL         1464
+#define pinFL_H			    6 			        //connected to ESC 8 
+#define pinFR_H		    	7 			        //connected to ESC 7
+#define pinBL_H			    8			          //connected to ESC 6
+#define pinBR_H			    9			          //connected to ESC 5
+#define pinFL_V			    10              //connected to ESC 4
+#define pinFR_V			    11              //connected to ESC 3
+#define pinBL_V			    12 			        //connected to ESC 2
+#define pinBR_V			    13 			        //connected to ESC 1
+#define NEUTRAL_FL_H    1464
 #define NEUTRAL_FR_H    1464
-#define NEUTRAL_BL_H    1464//111
+#define NEUTRAL_BL_H    1464
 #define NEUTRAL_BR_H    1464
 #define NEUTRAL_FL_V    1464
-#define NEUTRAL_FR_V    1464   //107
+#define NEUTRAL_FR_V    1464
 #define NEUTRAL_BL_V    1464
 #define NEUTRAL_BR_V    1464
 
 //Globals
-const uint16_t NEUTRAL = (MAXPULS + MINPULS) / 2;
 
   float straferate =  0.25;
   float speedFL_H, speedFR_H = 0;
@@ -44,23 +42,45 @@ const uint16_t NEUTRAL = (MAXPULS + MINPULS) / 2;
   int16_t LT = 0;
   int16_t RT = 0;
   int16_t LB = 0;
-  int16_t RB = 0;;
+  int16_t RB = 0;
+  uint8_t horizontal = 0;
+  uint8_t vertical = 0;
+  char priority = 'n';
+  float SPEED_LIMIT = 0.50;
 
 
 //Functions
 void serial_recv(int16_t *varA, int16_t *varB, int16_t *varC, int16_t *varD, int16_t *varE, int16_t *varF, int16_t *varG, int16_t *varH) {
+ 
   char serial_in[25] = "000000000000000000000000";
   if(Serial5.available()) {
   Serial5.readBytes(serial_in, 24);
-  *varA = ((serial_in[0] - '0') * 100) + ((serial_in[1] - '0') * 10) + (serial_in[2] - '0') - 100;
-  *varB = ((serial_in[3] - '0') * 100) + ((serial_in[4] - '0') * 10) + (serial_in[5] - '0') - 100;
-  *varC = ((serial_in[6] - '0') * 100) + ((serial_in[7] - '0') * 10) + (serial_in[8] - '0') - 100;
-  *varD = ((serial_in[9] - '0') * 100) + ((serial_in[10] - '0') * 10) + (serial_in[11] - '0') - 100;
-  *varE = ((serial_in[12] - '0') * 100) + ((serial_in[13] - '0') * 10) + (serial_in[14] - '0') - 100;
-  *varF = ((serial_in[15] - '0') * 100) + ((serial_in[16] - '0') * 10) + (serial_in[17] - '0') - 100;
-  *varG = ((serial_in[18] - '0') * 100) + ((serial_in[19] - '0') * 10) + (serial_in[20] - '0') - 100;
-  *varH = ((serial_in[21] - '0') * 100) + ((serial_in[22] - '0') * 10) + (serial_in[23] - '0') - 100;
-  //SerialUSB.println(serial_in);
+  
+  uint8_t start_pos = 0;
+  for(uint8_t i = 0; i < 25; i++) {
+    if(serial_in[i] == 'i') {start_pos = i + 1;}
+  }
+
+  uint8_t read_pos[24];
+  for(uint8_t i = 0; i < 25; i++) {
+    if((start_pos + i) < 24) {
+      read_pos[i] = start_pos + i;
+    }
+    else {
+      read_pos[i] = start_pos + i - 25;
+    }
+  }
+
+  *varA = ((serial_in[read_pos[0]] - '0') * 100) + ((serial_in[read_pos[1]] - '0') * 10) + (serial_in[read_pos[2]] - '0') - 100;
+  *varB = ((serial_in[read_pos[3]] - '0') * 100) + ((serial_in[read_pos[4]] - '0') * 10) + (serial_in[read_pos[5]] - '0') - 100;
+  *varC = ((serial_in[read_pos[6]] - '0') * 100) + ((serial_in[read_pos[7]] - '0') * 10) + (serial_in[read_pos[8]] - '0') - 100;
+  *varD = ((serial_in[read_pos[9]] - '0') * 100) + ((serial_in[read_pos[10]] - '0') * 10) + (serial_in[read_pos[11]] - '0') - 100;
+  *varE = ((serial_in[read_pos[12]] - '0') * 100) + ((serial_in[read_pos[13]] - '0') * 10) + (serial_in[read_pos[14]] - '0') - 100;
+  *varF = ((serial_in[read_pos[15]] - '0') * 100) + ((serial_in[read_pos[16]] - '0') * 10) + (serial_in[read_pos[17]] - '0') - 100;
+  *varG = ((serial_in[read_pos[18]] - '0'));
+  *varH = ((serial_in[read_pos[19]] - '0'));
+  SPEED_LIMIT = ((float((serial_in[read_pos[20]] - '0') * 100)) + float(((serial_in[read_pos[21]] - '0') * 10)) + float(((serial_in[read_pos[22]] - '0')))) / 100;
+
   }
 }
 
@@ -72,17 +92,14 @@ uint16_t percent_to_servo(float percent, uint16_t neutral) {
 
   if(percent > 0) {
     servo_val = map(percent * 100, 0, 100, neutral, neutral + 400);
-    //SerialUSB.println(servo_val);
     return servo_val;
   }
   if(percent < 0) {
     servo_val = map(percent * 100, -100, 0, neutral - 400, neutral);
-    //SerialUSB.println(servo_val);
     return servo_val;
   }
   else {
     servo_val = neutral;
-    //SerialUSB.println(servo_val);
     return servo_val;
   }
 }
@@ -121,13 +138,7 @@ void loop() {
 
   //Serial Recieve
   
-  serial_recv(&Ry, &LT, &RT, &LB, &RB, &Lx, &Ly, &Rx);
-  //serial_recv(&Lx, &Ly, &Rx, &Ry, &LT, &RT, &LB, &RB);
-  /*SerialUSB.println(Lx);  SerialUSB.println(Ly);
-  SerialUSB.println(Rx);  SerialUSB.println(Ry);
-  SerialUSB.println(LT);  SerialUSB.println(RT);
-  SerialUSB.println(LB);  SerialUSB.println(RB);
-  SerialUSB.println();*/
+  serial_recv(&Lx, &Ly, &Rx, &Ry, &LT, &RT, &LB, &RB);
 
 //Calculate motor percentage speeds
 //Float conversion
@@ -213,13 +224,27 @@ void loop() {
     ppitch = 0;
   }
 
+  //Motor management:
+  if(speedFL_H != 0 || speedFR_H != 0 || speedBL_H != 0 || speedBR_H != 0) {horizontal = 1;}
+  else {horizontal = 0;}
+  if(speedFL_V != 0 || speedFR_V != 0 || speedBL_V != 0 || speedBR_V != 0) {vertical = 1;}
+  else {vertical = 0;}
+  if(horizontal == 0 && vertical == 0) {priority == 'n';}
+  if(priority = 'n') {
+    if(horizontal == 1) {priority = 'h';}
+    if(vertical == 1) {priority = 'v';}
+    if(horizontal == 1 && vertical == 1) {priority == 'h';}
+  }
+
+  if(priority == 'h') {speedFL_V = speedFR_V = speedBL_V = speedBR_V = 0;}
+  if(priority == 'v') {speedFL_H = speedFR_H = speedBL_H = speedBR_H = 0;}
+
 
 //-------------------------------------------------------------ESC Write
   escFL_H.writeMicroseconds(percent_to_servo(speedFL_H * SPEED_LIMIT, NEUTRAL_FL_H));
   escFR_H.writeMicroseconds(percent_to_servo(speedFR_H * SPEED_LIMIT, NEUTRAL_FR_H));
   escBL_H.writeMicroseconds(percent_to_servo(speedBL_H * SPEED_LIMIT, NEUTRAL_BL_H));
   escBR_H.writeMicroseconds(percent_to_servo(speedBR_H * SPEED_LIMIT, NEUTRAL_BR_H));
-
   escFL_V.writeMicroseconds(percent_to_servo(speedFL_V * SPEED_LIMIT, NEUTRAL_FL_V));
   escFR_V.writeMicroseconds(percent_to_servo(speedFR_V * SPEED_LIMIT, NEUTRAL_FR_V));
   escBL_V.writeMicroseconds(percent_to_servo(speedBL_V * SPEED_LIMIT, NEUTRAL_BL_V));
@@ -227,8 +252,8 @@ void loop() {
  
 
 
-//---------------------------------------------------------------Debug
-  
+
+//---------------------------------------------------------------Debug  
   
   
   SerialUSB.print("\n\n    ");
@@ -246,5 +271,12 @@ void loop() {
   SerialUSB.print(percent_to_servo(speedBL_H, NEUTRAL_BL_H));
   SerialUSB.print("   ");
   SerialUSB.print(percent_to_servo(speedBR_H, NEUTRAL_BR_H));
+
+  /*SerialUSB.println(Lx);  SerialUSB.println(Ly);
+  SerialUSB.println(Rx);  SerialUSB.println(Ry);
+  SerialUSB.println(LT);  SerialUSB.println(RT);
+  SerialUSB.println(LB);  SerialUSB.println(RB);
+  SerialUSB.println();*/
+  
 //End main loop
 }
